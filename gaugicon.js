@@ -33,8 +33,17 @@
         retina: false,      // canvas should be 32x32 instead of 16x16 and all dimensions are x2
         autoApply: true,    // automatically apply the new graphic on value set
 
-        minAngle: (0 - (Math.PI * 1.29)),
-        maxAngle: (Math.PI * 0.29)
+        // defaults (approx 7:00 to 5:00)
+        //minAngle: (0 - (Math.PI * 0.76)),
+        //maxAngle: (Math.PI * 0.76)
+
+        // 180 degrees (12:00 to 6:00)
+        //minAngle: 0,                // zero is the top, at 12 o'clock
+        //maxAngle: Math.PI
+
+        // 180 degrees (9:00 to 3:00)
+        minAngle: (0 - (Math.PI * 0.5)),
+        maxAngle: Math.PI * 0.5
     };
 
     gaugicon.DialGauge.prototype.init = function(options) {
@@ -86,7 +95,48 @@
     /* Determine the middle of the dial */
     gaugicon.DialGauge.prototype._getDialCentrePoint = function() {
         var size = this._canvas.width;
-        return [ size / 2, size / 2 ];
+        //return [ size / 2, size / 2 ];
+
+        /*
+        var angle = this.options.maxAngle - this.options.minAngle;
+        console.log(angle);
+
+        // Find the height across the middle point of the arc
+        var heightAcrossMiddleArc = angle * ((size / 2) / Math.PI)
+        console.log(heightAcrossMiddleArc);
+
+        // Get the padding to add to the center point
+        var x = (size - Math.ceil(heightAcrossMiddleArc)) / 2;
+        var y = (size - Math.ceil(heightAcrossMiddleArc)) / 2;
+
+        return [ (size / 2) + x, (size / 2) + y ];
+        */
+
+        var alpha = 0;
+        var beta = 0;
+
+        // case 2
+        if (this.options.minAngle < 0 && this.options.maxAngle > 0) {
+            alpha = this.options.minAngle * -1;
+            beta = this.options.maxAngle;
+        }
+
+        var radius = size / 2; // double-check this later
+        console.log("radius: " + radius);
+        var width = (radius * Math.sin(alpha)) + (radius * Math.sin(beta));
+        var height = radius;
+
+        console.log([width, height]);
+
+        // Get the padding to add to the center point
+        var x = (size - Math.ceil(width)) / 2;
+        var y = (size - Math.ceil(height)) / 2;
+        console.log([x, y]);
+
+        return [
+            (size / 2) + x, 
+            (size / 2) + y
+        ];
     };
 
     /* Draw the face of the dial */
@@ -103,9 +153,9 @@
         this._context.arc(
             centre[0],
             centre[1],
-            (size / 2) - Math.ceil(lineWidth),
-            this.options.minAngle,
-            this.options.maxAngle,
+            (size / 2) - Math.ceil(lineWidth / 2),
+            this.options.minAngle - (Math.PI * 0.5),    // move 0 to top
+            this.options.maxAngle - (Math.PI * 0.5),    // move 0 to top
             false
         );
         this._context.fill();
@@ -119,7 +169,8 @@
         var currentValueRotationAngle = ((this.value - this.options.min) * 
                                          (this.options.maxAngle - this.options.minAngle) / 
                                          (this.options.max - this.options.min) + 
-                                         this.options.minAngle);
+                                         this.options.minAngle - 
+                                         (Math.PI * 0.5) );  // Move 0 to top
         var centre = this._getDialCentrePoint();
         var lineWidth = this.options.retina ? 2 : 1.5;
         var needleLength = (this._canvas.width / 2) - lineWidth
@@ -144,7 +195,10 @@
     gaugicon.DialGauge.prototype._draw = function() {
         if (this._context == null) return;  // Canvas appears to be unsupported.
 
-        this._context.clearRect(0, 0, this.options.width, this.options.height);
+        var size = this._canvas.width;
+        this._context.clearRect(0, 0, size, size);
+        this._context.fillStyle = "#FF80FF";
+        this._context.fillRect(0, 0, size, size);
 
         this._drawFace();
         this._drawNeedle();
