@@ -83,10 +83,17 @@
         return bg;
     };
 
+    /* Determine the middle of the dial */
+    gaugicon.DialGauge.prototype._getDialCentrePoint = function() {
+        var size = this._canvas.width;
+        return [ size / 2, size / 2 ];
+    };
+
     /* Draw the face of the dial */
     gaugicon.DialGauge.prototype._drawFace = function() {
         var size = this._canvas.width;
         var lineWidth = this.options.retina ? 2 : 1.5;
+        var centre = this._getDialCentrePoint();
 
         this._context.fillStyle = this._chooseBackgroundColour();
         this._context.strokeStyle = this.options.outlineColour;
@@ -94,8 +101,8 @@
 
         this._context.beginPath();
         this._context.arc(
-            size / 2,
-            size / 2,
+            centre[0],
+            centre[1],
             (size / 2) - Math.ceil(lineWidth),
             this.options.minAngle,
             this.options.maxAngle,
@@ -104,6 +111,33 @@
         this._context.fill();
         this._context.stroke();
         this._context.closePath();
+    };
+
+    /* Draw the dial's needle */
+    gaugicon.DialGauge.prototype._drawNeedle = function() {
+        // thanks to @vkornov for giving me this formula
+        var currentValueRotationAngle = ((this.value - this.options.min) * 
+                                         (this.options.maxAngle - this.options.minAngle) / 
+                                         (this.options.max - this.options.min) + 
+                                         this.options.minAngle);
+        var centre = this._getDialCentrePoint();
+        var lineWidth = this.options.retina ? 2 : 1.5;
+        var needleLength = (this._canvas.width / 2) - lineWidth
+
+        // Position/rotate to put needle in the right place
+        this._context.translate(centre[0], centre[1]); 
+        this._context.rotate(currentValueRotationAngle);
+
+        this._context.lineWidth = lineWidth;
+        this._context.beginPath();
+        this._context.moveTo(-1, 0);
+        this._context.lineTo(needleLength, 0);
+        this._context.stroke();
+        this._context.closePath();
+
+        // Reset needle translation/rotation
+        this._context.rotate(0 - currentValueRotationAngle);
+        this._context.translate(centre[0] * -1, centre[1] * -1);
     };
 
     /* Draws the image onto the canvas */
